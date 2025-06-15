@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JJ TUR | Buscar Passagens</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"/>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"/>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(to right, #ddade9, #ecafe9);
+      margin: 20px;
+      text-align: center;
+    }
+    .form-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .radio-group {
+      text-align: left;
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #333;
+    }
+    .radio-group label {
+      margin-right: 20px;
+      cursor: pointer;
+    }
+    .form-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .input-field {
+      position: relative;
+      flex: 1 1 180px;
+      min-width: 180px;
+    }
+    .input-field i {
+      position: absolute;
+      top: 12px;
+      left: 10px;
+      color: #007bff;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .input-field input {
+      width: 100%;
+      padding: 12px 12px 12px 40px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      position: relative;
+      z-index: 1;
+    }
+    .input-field input:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 10px rgba(0,123,255,0.5);
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      opacity: 0;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      cursor: pointer;
+      z-index: 3;
+    }
+    input[type="date"] {
+      appearance: none;
+      -webkit-appearance: none;
+      background-color: white;
+    }
+    .btn, .btn-invert {
+      border: none;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .btn {
+      background: #cc00ff;
+      color: white;
+      flex: 1 1 150px;
+      max-width: 200px;
+    }
+    .btn:hover {
+      background: #9500b3;
+      transform: scale(1.05);
+    }
+    .btn-invert {
+      background: #a328a7;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 45px;
+      height: 45px;
+    }
+    .btn-invert:hover {
+      background: #b12bb1;
+      transform: rotate(180deg);
+    }
+    .btn-highlight {
+      box-shadow: 0 0 15px #ac2cb8;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0px #a728a7; }
+      50% { box-shadow: 0 0 15px #a328a7; }
+      100% { box-shadow: 0 0 0px #9828a7; }
+    }
+    @media (max-width: 768px) {
+      .form-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .input-field, .btn, .btn-invert {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2>Buscar Passagens</h2>
+    <div class="radio-group">
+      <label><input type="radio" name="tipoViagem" value="ida" checked onclick="atualizarTipoViagem()"> Somente ida</label>
+      <label><input type="radio" name="tipoViagem" value="ida_volta" onclick="atualizarTipoViagem()"> Ida e volta</label>
+    </div>
+    <form id="formBusca" action="https://agenciaconecttur.buson.com.br/busca" method="get" target="_blank">
+      <div class="form-group">
+        <div class="input-field">
+          <i class="fas fa-map-marker-alt"></i>
+          <input type="text" id="origem" name="departure.label" placeholder="Saindo de onde?" required />
+          <input type="hidden" id="origem-id" name="departure.id" />
+        </div>
+        <button type="button" class="btn-invert" id="invertRoute" title="Inverter rotas">
+          <i class="fas fa-exchange-alt"></i>
+        </button>
+        <div class="input-field">
+          <i class="fas fa-map-marker-alt"></i>
+          <input type="text" id="destino" name="arrival.label" placeholder="Indo para onde?" required />
+          <input type="hidden" id="destino-id" name="arrival.id" />
+        </div>
+        <div class="input-field">
+          <i class="fas fa-calendar-alt"></i>
+          <input type="date" name="dateGo" id="dateGo" required />
+        </div>
+        <div class="input-field">
+          <i class="fas fa-calendar-alt"></i>
+          <input type="date" name="dateBack" id="dateBack" />
+        </div>
+        <input type="hidden" name="companykey" value="JJ TUR PX" />
+        <button type="submit" class="btn">Procurar passagens</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+  <script>
+    function removeAcentos(str) {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function atualizarTipoViagem() {
+      const tipo = $('input[name="tipoViagem"]:checked').val();
+      const dateBack = $("#dateBack");
+      if (tipo === "ida") {
+        dateBack.prop("disabled", true).val("").css("opacity", "0.6");
+      } else {
+        dateBack.prop("disabled", false).css("opacity", "1");
+      }
+    }
+
+    let destinos = [];
+
+    $(document).ready(() => {
+      atualizarTipoViagem();
+
+      const params = new URLSearchParams(window.location.search);
+      const origem = params.get("departure.label");
+      const destino = params.get("arrival.label");
+      const dataGo = params.get("dateGo");
+      const dataBack = params.get("dateBack");
+
+      if (origem) $("#origem").val(origem);
+      if (destino) $("#destino").val(destino);
+      if (dataGo) $("#dateGo").val(dataGo);
+      if (dataBack) {
+        $("input[name='tipoViagem'][value='ida_volta']").prop("checked", true);
+        $("#dateBack").val(dataBack);
+        atualizarTipoViagem();
+      }
+
+      $("#origem, #destino").trigger("change");
+
+      $.get("https://agenciaconecttur.buson.com.br/station/all", data => {
+        destinos = data;
+        $("#origem, #destino").autocomplete({
+          source: (request, response) => {
+            const termo = removeAcentos(request.term.toLowerCase());
+            const resultados = destinos.filter(d =>
+              removeAcentos(d.label.toLowerCase()).includes(termo)
+            );
+            response(resultados.map(d => ({ label: d.label, value: d.value })));
+          },
+          select: (event, ui) => {
+            $(event.target).val(ui.item.label);
+            const hidden = event.target.id === "origem" ? "#origem-id" : "#destino-id";
+            $(hidden).val(ui.item.value);
+            verificarCampos();
+            return false;
+          }
+        });
+      });
+
+      $("#invertRoute").click(() => {
+        const origemVal = $("#origem").val();
+        const destinoVal = $("#destino").val();
+        const origemId
